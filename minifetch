@@ -1,0 +1,45 @@
+#!/bin/bash
+
+[ -n "${COLOR:+1}" ] || COLOR="34"
+_CHARCOL="\e[${COLOR}m"
+_NORM="\e[0m"
+_USERHOST="$(id -un)@$(hostname)"
+
+case "$(uname -s)" in
+	Linux)	if [ -e /etc/os-release ]; then
+			source /etc/os-release
+			_OS="$PRETTY_NAME"
+		else
+			_OS="$(uname -o)"
+		fi
+		;;
+	*) _OS="$(uname -o)" || _OS="(unknown)"
+	   ;;
+esac
+_OS="$_OS $(uname -m)"
+_KERNEL="$(uname -sr)"
+
+_UPTIME="$(uptime)"
+echo "$_UPTIME" | grep -E "min|days" >/dev/null && _UPTIME=$(echo "$_UPTIME" | cut -f4-6 -d' ') || _UPTIME=$(echo "$_UPTIME" | cut -f5 -d' ')
+_UPTIME="$(echo "$_UPTIME"|tr -d ,)"
+
+( command -v xrandr >/dev/null && [ -n "${DISPLAY:+1}" ] ) && _RESOLUTION="$(xrandr|grep -F \*|tr -s ' '|cut -f2 -d' '|tr -d \*|tr -d +|tr '\n' ',')"
+_RESOLUTION=${_RESOLUTION::-1}
+_TTY="$(tty)"
+command -v lscpu >/dev/null && _CPU="$(lscpu|grep "Model name:"|tr -s ' '|sed 's/Model name: //g')"
+_CPUCORES="$(nproc)"
+command -v lspci >/dev/null && _GPU="$(lspci|grep -i VGA|cut -f3- -d:|cut -f2- -d' ')"
+
+echo -e "${_CHARCOL}${_USERHOST}${_NORM}"
+for i in $(seq ${#_USERHOST}); do
+	echo -n '-'
+done; echo
+echo -e "${_CHARCOL}os${_NORM}:   $_OS"
+echo -e "${_CHARCOL}kern${_NORM}: $_KERNEL"
+echo -e "${_CHARCOL}up${_NORM}:   $_UPTIME"
+echo -e "${_CHARCOL}sh${_NORM}:   $SHELL"
+[ "$_RESOLUTION" = "" ] || echo -e "${_CHARCOL}res${_NORM}:  $_RESOLUTION"
+echo -e "${_CHARCOL}tty${_NORM}:  $_TTY"
+[ "$DESKTOP_SESSION" = "" ] || echo -e "${_CHARCOL}desk${_NORM}: $DESKTOP_SESSION"
+echo -e "${_CHARCOL}cpu${_NORM}:  $_CPU, $_CPUCORES cores"
+echo -e "${_CHARCOL}gpu${_NORM}:  $_GPU"
